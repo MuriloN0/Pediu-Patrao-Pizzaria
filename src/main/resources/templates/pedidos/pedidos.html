@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Lista de Pedidos</title>
+</head>
+<body>
+
+<div th:fragment="content">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-bag me-2 text-primary"></i>Pedidos
+        </h2>
+    </div>
+
+    <!-- Mensagens de feedback -->
+    <div class="alert alert-success alert-dismissible fade show" th:if="${sucesso}" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        <span th:text="${sucesso}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div class="alert alert-danger alert-dismissible fade show" th:if="${erro}" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <span th:text="${erro}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <form id="formPedido" class="card card-body mb-4">
+        <h4>Novo pedido</h4>
+
+        <label for="clientePedido">Cliente</label>
+        <select id="clientePedido" class="form-select mb-3" required>
+            <option value="">Selecione</option>
+            <option th:each="cliente : ${clientes}"
+                    th:value="${cliente.id}"
+                    th:text="${cliente.nome}">
+            </option>
+        </select>
+
+        <div id="itensPedido">
+            <div class="item-pedido d-flex gap-2 mb-2">
+                <select class="produto form-select" required>
+                    <option value="">Selecione o produto</option>
+                    <option th:each="produto : ${produtos}"
+                            th:value="${produto.id}"
+                            th:text="${produto.nome}">
+                    </option>
+                </select>
+
+                <input class="quantidade form-control"
+                       type="number" min="1" step="1"
+                       value="1" required>
+
+                <button type="button"
+                        class="btn btn-outline-danger"
+                        onclick="removerItemPedido(this)">
+                    Remover
+                </button>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-2">
+            <button type="button"
+                    class="btn btn-outline-primary"
+                    onclick="adicionarItemPedido()">
+                Adicionar item
+            </button>
+
+            <button type="submit" class="btn btn-primary">
+                Registrar pedido
+            </button>
+        </div>
+
+        <p id="mensagemPedido" role="status" class="mt-2 mb-0"></p>
+    </form>
+
+    <!-- Tabela -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Cliente ID</th>
+                    <th>Itens</th>
+                    <th>Desconto (%)</th>
+                    <th>Total (R$)</th>
+                    <th>Responsável</th>
+                    <th>Entrada</th>
+                    <th>Status</th>
+                    <th>Saída</th>
+                    <th>Responsável pela saída</th>
+                    <th>Alterar status</th>
+                    <th>Desconto e cancelamento</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(pedidos)}">
+                    <td colspan="12">Nenhum pedido encontrado.</td>
+                </tr>
+
+                <tr th:each="pedido : ${pedidos}">
+                    <td th:text="${pedido.id}"></td>
+                    <td th:text="${pedido.clienteId}"></td>
+
+                    <td>
+                        <div th:each="item : ${pedido.itens}">
+                            <span th:text="${item.produtoId}"></span>
+                            — Quantidade:
+                            <span th:text="${item.quantidade}"></span>
+                            — Preço unitário:
+                            <span th:text="${item.precoUnitario}"></span>
+                        </div>
+                    </td>
+
+                    <td th:text="${pedido.percentualDesconto}"></td>
+                    <td th:text="${pedido.valorTotal}"></td>
+                    <td th:text="${pedido.responsavelRegistro}"></td>
+                    <td class="data-local" th:attr="data-instante=${pedido.dataHoraEntrada}"></td>
+                    <td th:text="${pedido.status}"></td>
+                    <td class="data-local" th:attr="data-instante=${pedido.dataHoraSaida}"></td>
+                    <td th:text="${pedido.responsavelSaida}"></td>
+                    <td>
+                        <input type="number" class="percentual-desconto form-control form-control-sm mb-2" min="0" max="20" step="0.01" placeholder="Desconto (%)">
+
+                        <button type="button" class="btn btn-sm btn-primary mb-2" th:attr="data-id=${pedido.id}" onclick="aplicarDescontoPedido(this)">
+                            Aplicar desconto
+                        </button>
+
+                        <textarea class="justificativa form-control form-control-sm mb-2" placeholder="Justificativa do cancelamento"></textarea>
+
+                        <button type="button" class="btn btn-sm btn-danger" th:attr="data-id=${pedido.id}" onclick="cancelarPedido(this)">
+                            Cancelar pedido
+                        </button>
+
+                        <span class="mensagem-operacao d-block mt-1" role="status"></span>
+                    </td>
+
+                    <td>
+                        <select class="form-select form-select-sm mb-2">
+                            <option value="EM_PREPARACAO">Em preparação</option>
+                            <option value="PRONTO">Pronto</option>
+                            <option value="SAIU_PARA_ENTREGA">Saiu para entrega</option>
+                            <option value="RETIRADO">Retirado</option>
+                            <option value="FINALIZADO">Finalizado</option>
+                        </select>
+
+                        <button type="button"
+                                class="btn btn-sm btn-primary"
+                                th:attr="data-id=${pedido.id}"
+                                onclick="alterarStatusPedido(this)">
+                            Atualizar
+                        </button>
+
+                        <span class="mensagem-status d-block mt-1"
+                              role="status"></span>
+                    </td>
+
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer text-muted small" th:if="${!#lists.isEmpty(pedidos)}">
+            Total: <strong th:text="${#lists.size(pedidos)}"></strong> pedido(s)
+        </div>
+    </div>
+
+    <script>
+        function adicionarItemPedido() {
+            const modelo = document.querySelector(".item-pedido");
+            const novaLinha = modelo.cloneNode(true);
+
+            novaLinha.querySelector(".produto").value = "";
+            novaLinha.querySelector(".quantidade").value = "1";
+
+            document.getElementById("itensPedido").appendChild(novaLinha);
+        }
+
+        function removerItemPedido(botao) {
+            if (document.querySelectorAll(".item-pedido").length > 1) {
+                botao.closest(".item-pedido").remove();
+            }
+        }
+
+        document.getElementById("formPedido")
+            .addEventListener("submit", async function(event) {
+                event.preventDefault();
+
+                const mensagem = document.getElementById("mensagemPedido");
+                const botao = this.querySelector('button[type="submit"]');
+
+                const dados = {
+                    clienteId: document.getElementById("clientePedido").value,
+                    itens: Array.from(
+                        document.querySelectorAll(".item-pedido")
+                    ).map(linha => ({
+                        produtoId: linha.querySelector(".produto").value,
+                        quantidade: Number(
+                            linha.querySelector(".quantidade").value
+                        )
+                    }))
+                };
+
+                botao.disabled = true;
+                mensagem.textContent = "Salvando...";
+
+                try {
+                    const resposta = await fetchComCsrf("/api/pedidos", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(dados)
+                    });
+
+                    if (!resposta.ok) {
+                        mensagem.textContent =
+                            "Pedido não salvo. HTTP " + resposta.status +
+                            ". Verifique os dados e sua permissão.";
+                        return;
+                    }
+
+                    window.location.reload();
+                } catch (erro) {
+                    mensagem.textContent =
+                        "Não foi possível comunicar com o servidor.";
+                } finally {
+                    botao.disabled = false;
+                }
+            });
+        async function alterarStatusPedido(botao) {
+                    const celula = botao.closest("td");
+                    const status = celula.querySelector("select").value;
+                    const mensagem = celula.querySelector(".mensagem-status");
+                    const id = botao.dataset.id;
+
+                    botao.disabled = true;
+                    mensagem.textContent = "Atualizando...";
+
+                    try {
+                        const resposta = await fetchComCsrf(
+                            "/api/pedidos/" + encodeURIComponent(id)
+                                + "/status?status=" + encodeURIComponent(status),
+                            { method: "PUT" }
+                        );
+
+                        if (!resposta.ok) {
+                            if (resposta.status === 403) {
+                                mensagem.textContent =
+                                    "Você não tem permissão para essa alteração.";
+                            } else if (resposta.status === 400) {
+                                mensagem.textContent =
+                                    "Não é possível mudar para esse status na etapa atual do pedido.";
+                            } else if (resposta.status === 404) {
+                                mensagem.textContent = "Pedido não encontrado.";
+                            } else {
+                                mensagem.textContent =
+                                    "Não foi possível atualizar o pedido. Tente novamente.";
+                            }
+
+                            return;
+                        }
+
+                        window.location.reload();
+                    } catch (erro) {
+                        mensagem.textContent =
+                            "Não foi possível comunicar com o servidor.";
+                    } finally {
+                        botao.disabled = false;
+                    }
+                }
+        document.querySelectorAll(".data-local").forEach(celula => {
+            const instante = celula.dataset.instante;
+
+            celula.textContent = instante ? new Date(instante).toLocaleString("pt-BR"): "—";
+        });
+
+        async function aplicarDescontoPedido(botao) {
+            const celula = botao.closest("td");
+            const percentual = celula.querySelector(".percentual-desconto").value;
+            const mensagem = celula.querySelector(".mensagem-operacao");
+
+            if (percentual === "") {
+                mensagem.textContent = "Informe o percentual de desconto.";
+                return;
+            }
+
+            await executarOperacaoPedido(
+                botao,
+                "/api/pedidos/" + encodeURIComponent(botao.dataset.id)
+                    + "/desconto?percentual=" + encodeURIComponent(percentual),
+                { method: "PUT" }
+            );
+        }
+
+        async function cancelarPedido(botao) {
+            const celula = botao.closest("td");
+            const justificativa = celula.querySelector(".justificativa").value;
+
+            await executarOperacaoPedido(
+                botao,
+                "/api/pedidos/" + encodeURIComponent(botao.dataset.id)
+                    + "/cancelamento",
+                {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ justificativa })
+                }
+            );
+        }
+
+        async function executarOperacaoPedido(botao, url, opcoes) {
+            const mensagem = botao.closest("td")
+                .querySelector(".mensagem-operacao");
+
+            botao.disabled = true;
+            mensagem.textContent = "Processando...";
+
+            try {
+                const resposta = await fetchComCsrf(url, opcoes);
+
+                if (!resposta.ok) {
+                    if (resposta.status === 403) {
+                        mensagem.textContent =
+                            "Você não tem permissão para essa alteração.";
+                    } else if (resposta.status === 400) {
+                        mensagem.textContent =
+                            "Operação recusada. Verifique os dados "
+                            + "e se o pedido ainda pode ser alterado.";
+                    } else {
+                        mensagem.textContent = "Não foi possível concluir a operação.";
+                    }
+                    return;
+                }
+
+                window.location.reload();
+            } catch (erro) {
+                mensagem.textContent = "Não foi possível comunicar com o servidor.";
+            } finally {
+                botao.disabled = false;
+            }
+        }
+    </script>
+
+</div>
+
+</body>
+</html>

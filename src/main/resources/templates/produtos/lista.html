@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Produtos</title>
+</head>
+<body>
+
+<div th:fragment="content">
+    <h2 class="mb-4">Produtos</h2>
+
+    <div class="alert alert-success"
+         th:if="${sucesso}"
+         th:text="${sucesso}"
+         role="alert">
+    </div>
+
+    <div class="alert alert-danger"
+         th:if="${erro}"
+         th:text="${erro}"
+         role="alert">
+    </div>
+
+    <!-- Cadastro de produto -->
+    <form th:action="@{/produtos/salvar}"
+          method="post"
+          class="card card-body mb-4">
+
+        <h4>Novo produto</h4>
+
+        <label for="nomeProduto">Nome</label>
+        <input id="nomeProduto"
+               name="nome"
+               class="form-control mb-3"
+               required>
+
+        <label for="tipoProduto">Tipo</label>
+        <select id="tipoProduto"
+                name="tipo"
+                class="form-select mb-3"
+                required>
+            <option value="">Selecione</option>
+            <option value="Pizza">Pizza</option>
+            <option value="Esfiha">Esfiha</option>
+            <option value="Bebida">Bebida</option>
+            <option value="Lanche">Lanche</option>
+            <option value="Porção">Porção</option>
+            <option value="Adicional">Adicional</option>
+        </select>
+
+        <label for="precoProduto">Preço (R$)</label>
+        <input id="precoProduto"
+               name="preco"
+               type="number"
+               min="0"
+               step="0.01"
+               class="form-control mb-3"
+               required>
+
+        <label for="ativoProduto">Ativo</label>
+        <select id="ativoProduto"
+                name="ativo"
+                class="form-select mb-3">
+            <option value="true">Sim</option>
+            <option value="false">Não</option>
+        </select>
+
+        <button type="submit" class="btn btn-primary">
+            Cadastrar produto
+        </button>
+    </form>
+
+    <!-- Listagem e edição -->
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+            <thead class="table-dark">
+            <tr>
+                <th>Nome</th>
+                <th>Tipo</th>
+                <th>Preço (R$)</th>
+                <th>Ativo</th>
+                <th>Ações</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            <tr th:if="${#lists.isEmpty(produtos)}">
+                <td colspan="5" class="text-center">
+                    Nenhum produto cadastrado.
+                </td>
+            </tr>
+
+            <tr th:each="produto : ${produtos}"
+                th:attr="data-id=${produto.id}">
+
+                <td>
+                    <input class="produto-nome form-control"
+                           aria-label="Nome do produto"
+                           th:value="${produto.nome}"
+                           required>
+                </td>
+
+                <td>
+                    <input class="produto-tipo form-control"
+                           aria-label="Tipo do produto"
+                           th:value="${produto.tipo}"
+                           required>
+                </td>
+
+                <td>
+                    <input class="produto-preco form-control"
+                           aria-label="Preço do produto"
+                           type="number"
+                           min="0"
+                           step="0.01"
+                           th:value="${produto.preco}"
+                           required>
+                </td>
+
+                <td>
+                    <input class="produto-ativo form-check-input"
+                           aria-label="Produto ativo"
+                           type="checkbox"
+                           th:checked="${produto.ativo == true}">
+                </td>
+
+                <td>
+                    <div class="d-flex gap-2">
+                        <button type="button"
+                                class="btn btn-sm btn-primary"
+                                onclick="editarProduto(this)">
+                            Salvar alterações
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-sm btn-danger"
+                                onclick="excluirProduto(this)">
+                            Excluir
+                        </button>
+                    </div>
+
+                    <span class="mensagem-produto d-block mt-2"
+                          role="status">
+                    </span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        async function editarProduto(botao) {
+            const linha = botao.closest("tr");
+            const campoPreco = linha.querySelector(".produto-preco");
+            const precoTexto = campoPreco.value;
+            const mensagem = linha.querySelector(".mensagem-produto");
+
+            const produto = {
+                nome: linha.querySelector(".produto-nome").value.trim(),
+                tipo: linha.querySelector(".produto-tipo").value.trim(),
+                preco: Number(precoTexto),
+                ativo: linha.querySelector(".produto-ativo").checked
+            };
+
+            if (!produto.nome
+                    || !produto.tipo
+                    || precoTexto === ""
+                    || !Number.isFinite(produto.preco)
+                    || produto.preco < 0
+                    || !campoPreco.checkValidity()) {
+
+                mensagem.textContent =
+                    "Informe nome, tipo e preço válido.";
+                return;
+            }
+
+            await executarAcaoProduto(botao, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(produto)
+            });
+        }
+
+        async function excluirProduto(botao) {
+            if (!confirm("Deseja excluir este produto?")) {
+                return;
+            }
+
+            await executarAcaoProduto(botao, {
+                method: "DELETE"
+            });
+        }
+
+        async function executarAcaoProduto(botao, opcoes) {
+            const linha = botao.closest("tr");
+            const mensagem = linha.querySelector(".mensagem-produto");
+            const botoes = linha.querySelectorAll("button");
+
+            botoes.forEach(elemento => elemento.disabled = true);
+            mensagem.textContent = "Processando...";
+
+            try {
+                const resposta = await fetchComCsrf(
+                    "/api/produtos/"
+                        + encodeURIComponent(linha.dataset.id),
+                    opcoes
+                );
+
+                if (!resposta.ok) {
+                    if (resposta.status === 403) {
+                        mensagem.textContent =
+                            "Acesso negado ou sessão inválida. "
+                            + "Atualize a página.";
+                    } else if (resposta.status === 400) {
+                        mensagem.textContent =
+                            "Verifique o nome, o tipo e o preço informado.";
+                    } else if (resposta.status === 404) {
+                        mensagem.textContent =
+                            "Produto não encontrado. Atualize a página.";
+                    } else {
+                        mensagem.textContent =
+                            "Não foi possível concluir a operação.";
+                    }
+
+                    return;
+                }
+
+                window.location.reload();
+            } catch (erro) {
+                mensagem.textContent =
+                    "Não foi possível comunicar com o servidor.";
+            } finally {
+                botoes.forEach(elemento => elemento.disabled = false);
+            }
+        }
+    </script>
+</div>
+
+</body>
+</html>
