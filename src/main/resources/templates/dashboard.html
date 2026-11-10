@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard | Pediu Patrão</title>
+    <link rel="stylesheet" th:href="@{/dist/css/adminlte.min.css}">
+    <script defer th:src="@{/plugins/chart.js/Chart.min.js}"></script>
+    <script defer th:src="@{/js/dashboard.js}"></script>
+</head>
+<body class="layout-top-nav">
+<div class="wrapper">
+    <nav class="main-header navbar navbar-light navbar-white">
+        <div class="container">
+            <span class="navbar-brand">Pediu Patrão</span>
+            <a class="btn btn-outline-secondary btn-sm" th:href="@{/}">Voltar para Home</a>
+        </div>
+    </nav>
+
+    <main class="content-wrapper" id="dashboard"
+          th:attr="data-url=@{/dashboard/dados},data-login=@{/login}">
+        <header class="content-header">
+            <div class="container">
+                <h1>Dashboard administrativo</h1>
+                <p class="text-muted mb-0">Acompanhe as vendas e a situação dos pedidos por data de entrada.</p>
+            </div>
+        </header>
+
+        <section class="content">
+            <div class="container">
+                <div class="card">
+                    <div class="card-body">
+                        <form id="filtros" class="form-row align-items-end">
+                            <div class="col-sm-4 form-group mb-sm-0">
+                                <label for="inicio">Data inicial</label>
+                                <input type="date" class="form-control" id="inicio" name="inicio">
+                            </div>
+                            <div class="col-sm-4 form-group mb-sm-0">
+                                <label for="fim">Data final</label>
+                                <input type="date" class="form-control" id="fim" name="fim">
+                            </div>
+                            <div class="col-sm-4">
+                                <button type="submit" class="btn btn-primary" id="atualizar">Atualizar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="mensagem" class="alert alert-info" role="status" aria-live="polite" hidden></div>
+
+                <div id="resultados" hidden>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="small-box bg-success">
+                                <div class="inner">
+                                    <h3 id="valor-liquido"></h3>
+                                    <p>Valor líquido das vendas</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="small-box bg-info">
+                                <div class="inner">
+                                    <h3 id="finalizados"></h3>
+                                    <p>Pedidos finalizados</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="small-box bg-warning">
+                                <div class="inner">
+                                    <h3 id="ticket-medio"></h3>
+                                    <p>Ticket médio</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Vendas de pedidos finalizados por data de entrada</h2>
+                        </div>
+                        <div class="card-body">
+                            <div style="height: 280px">
+                                <canvas id="grafico-vendas" role="img"
+                                        aria-label="Gráfico de valor líquido por dia"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">Situação dos pedidos</h2>
+                                </div>
+                                <div class="card-body">
+                                    <p>Total no período: <strong id="total-pedidos"></strong></p>
+                                    <table class="table table-sm mb-0">
+                                        <thead><tr><th>Situação</th><th>Pedidos</th></tr></thead>
+                                        <tbody id="situacoes"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">Produtos mais vendidos</h2>
+                                </div>
+                                <div class="card-body">
+                                    <p id="ranking-vazio" hidden>Sem produtos vendidos em pedidos finalizados no período.</p>
+                                    <table class="table table-sm mb-0" id="ranking">
+                                        <thead><tr><th>Produto</th><th>Unidades</th></tr></thead>
+                                        <tbody id="produtos"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>
